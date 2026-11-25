@@ -1,0 +1,155 @@
+Model comparisons and finite certificates
+A companion to "A 1.5422 Lower Bound for Randomized Buffer Management in Shared-Memory Switches"
+
+Scope of the main formal theorem
+
+SharedBuffer.PolicyBridge.sharpFromPolicies in PolicyBridge.lean proves the
+uniform lower bound from the packet model for arbitrary finite arrival batches.
+A fixed private seed turns a policy into a function of the observed arrival
+prefix. Packet.PolicyLaw requires an empty initial state, per-slot shared
+capacity, legal admission and eviction, and measurable retention decisions.
+Packet.Competitive compares the coin-averaged online throughput with every
+feasible offline trajectory on the same fixed input, allowing a constant
+that depends on the switch and policy. The proof constructs the presampled
+assignments and their actual online and offline runs, supplies the fields of
+Cohorts.Experiment and derives the root bound. The supplementary statements
+below use the additional model comparisons and constructions specified in
+each section.
+
+1. Transferring the fractional lower bound
+
+Bochkov et al. (2019, Theorems 2 and 4) prove that an integer-capacity switch
+has an integral offline optimum even when fractions are allowed, and that every
+deterministic fractional online policy has competitive factor at least sqrt(2).
+We explain how their result implies the same baseline for a randomized integer
+policy A against fixed inputs. Both policies see the current batch, may evict
+old packets, and send up to one unit from each queue, with compulsory service
+when stock is present.
+
+Fix any arrival prefix. At one output, let p be A's expected stock just after
+the preceding service, m its expected retained stock immediately before the
+current service, and y the expected amount sent in that service. Expectations
+are over the private seed for this fixed prefix. With a new packets we have
+m <= p+a, y <= m, and y <= 1. A deterministic fractional policy knows these
+quantities from the prefix and the law of A. If F is its own prior post-service
+stock, it retains f=min(m,F+a) and sends z=min(1,f). This rule respects the
+available supply. Summing f<=m over outputs gives the buffer capacity bound.
+
+Let L denote cumulative fractional deliveries minus A's expected cumulative
+deliveries at this output through the preceding slot. Initially p=F=L=0.
+Inductively assume 0 <= p-F <= L. The pre-service shortfall m-f is at most
+p-F. The new post-service shortfall is (m-y)-(f-z). It is nonnegative: if
+f<=1 the fractional queue empties, and if f>=1 then m-y >= f-1. This new
+shortfall is at most L+z-y, the new lead in cumulative deliveries. Induction
+and summation over outputs show that the fractional policy attains at least
+A's expected throughput on every fixed input, including its drain. The
+comparison preserves any input-independent additive allowance on a fixed
+switch. The hard input for the deterministic fractional policy may therefore
+be chosen using A's law and fixed before its private seed is drawn. The
+long finite prefixes of the construction in Section 7 of Bochkov et al.
+allow the throughput to grow on a fixed switch (see their Section 5.2 for
+reuse of expired labels). The single-output induction step is checked in
+LargeBuffer.lean, theorem fractionalStep. The construction of the full policy
+and the application of the earlier theorem are the mathematical argument above.
+
+Source: https://arxiv.org/html/1907.04399v1#S7
+
+2. Every sufficiently large integer capacity
+
+Let r be the root in the manuscript and fix 1 <= rho < r. The finite-switch proposition in Section 3 and
+the limiting argument give a strict finite witness on K outputs with capacity
+B0. Write p=floor((B0-K)x0), O0=S+n p, C=n x1+E_m+1, U0=S+B0 C, and
+Delta=O0-rho U0>0. The offline construction earns O0 on every permutation;
+U0 bounds one cohort's expected online throughput after any prior history.
+
+Write the new capacity as B=h B0+s, with 0<=s<B0. Keep the same labels and
+group sizes, use last arrival times h t_i, and offer B packets per receiving
+label in each slot through its last arrival. Suppose h>=1. Offline allocates
+h p at each main expiration, divided as evenly as possible among its labels.
+A group of size d that has aged h tau slots now retains exactly
+h max(p-d tau,0) packets. At an event the total stock of current and older
+expiring groups is therefore at most h(B0-K). At most K additional places
+are needed for strict survivors. Between events the assigned stocks decrease.
+The peak is at most h(B0-K)+K<=B, and the offline throughput is h O0.
+
+The online policy has the full B places. In units of B, the lag thresholds
+are (h B0/B)T_k <= T_k. Replacing the actual thresholds by T_k decreases
+each positive part, so the paper's original summation bound still applies.
+Thus the one-cohort online upper bound is h S+B C=h U0+s C. The difference
+between the offline payoff and rho times this upper bound is at least
+h Delta-rho s C. For all h>rho(B0-1)C/Delta it is positive for every s.
+On this fixed switch, use independent presampled copies separated by B empty
+slots. For N copies the expected difference is at least N times the single-copy
+gap, even when the policy keeps its internal memory.
+Averaging the fixed-input competitive inequality removes the additive
+allowance by letting N tend to infinity. In particular, for each rho<r
+arbitrarily close to r, the same K=K(rho) works for every sufficiently large
+integer B. LargeBuffer.lean checks the lag comparison, the scaled residual,
+the peak estimate, the online bound, and the Euclidean-division argument.
+The application of these scaling lemmas to the time-stretched packet inputs
+for every integer capacity is the written argument in this section.
+
+3. A finite square switch with bounded input rate
+
+In the model of Aiello, Kesselman and Mansour (2008, Section 2), each input
+port receives at most one packet per slot and inputs are processed in a fixed
+order. The following independent certificate exceeds 3/2 under this restriction.
+Use K=10^36 active output labels, N=32K physical inputs and N physical outputs,
+and B=10^41 buffer positions. Reserve 32 dedicated inputs for each active
+label and leave the other outputs idle. A receiving label gets one packet
+from each of its inputs every slot, including the last, in fixed input order.
+Viewing an arrival phase and its following departure phase as a pair accommodates
+the convention of service before arrivals, since the initial service is empty
+and the final queues drain.
+
+There are n=7000 main events and one terminal event. Take v=100 and m=56.
+Set M_0=K and t_0=0. For i<n, let d_i=floor(M_i/v), M_(i+1)=M_i-d_i,
+and let t_(i+1)-t_i be B/(v^2 d_i) rounded to the nearest integer (ties up),
+with a minimum of one. The terminal group has d_n=M_n labels. Assign all
+expiration dates by a uniform permutation before the policy runs. Define
+S=sum_{i=0}^n d_i t_i. For this parameter set, put
+    q=floor((B-K)*16693/10^6).
+The main group target q_j equals q when q<=31 d_j t_j, and zero otherwise.
+The terminal target is zero. The optional downward rescaling in the checker
+does not activate for these parameters.
+
+Offline balances q_j across its d_j labels. If one label is assigned H packets
+at its final slot e, retain max(1,H-31(e-t)) before service in slots t<e,
+retain H at t=e, and subsequently retain max(0,H-(t-e)). Before expiration
+a queue can gain 31 net units per slot while sending one. The test on q_j
+ensures H<=31 e for positive targets and hence reachability from an empty
+start. Each label needs at most 32 new packets per slot to implement its trajectory;
+sequential acceptance can reject each unwanted arrival. The unit baselines
+cost at most K additional places. The extra stock for a block at any t is
+bounded by max(q_j-31 d_j(e-t),0) before e and max(q_j-d_j(t-e),0) from e
+on. Balancing gives these expressions because all labels lose the same
+integer number of units. Between consecutive event dates each summand is the
+positive part of an affine function and their sum is convex. A maximum on
+that interval occurs at an endpoint. The program checks all event dates and
+finds maximum envelope 99997944376421758025502269268171584565978 <= B-K.
+Thus each intermediate inventory fits. Offline earns O=S+sum_j q_j.
+
+For the online bound let Y_i be the expected number of transmissions from
+group i beginning with its last arrival slot. Since M_i/d_i>=v, the hidden
+identities give vY_i<=B. For an earlier group j, expected residual stock is
+at least max(Y_j-d_j(t_i-t_j),0). Sum the capacity inequalities for the n
+main dates, retaining up to m older groups per date. The right edge omits at
+most m(m+1)/2 appearances of a Y_j, each at most B/v. Charging the terminal
+group at most B packets gives
+    U=S+B+[nB+A+B m(m+1)/(2v)]/(v+m),
+    A=sum_{i=0}^{n-1} sum_{j=max(0,i-m)}^{i-1} d_j(t_i-t_j).
+The 32-packet stream at each live output reveals no impending expiration.
+The bound even permits the online policy to see the entire current batch,
+so it also applies with sequential input observations. Independent repetitions
+on this same switch remove a fixed additive allowance.
+
+The middle case of check_bounded_arrivals.py gives the exact strict gap
+    2O-3U = 1826156315885563170196081624242288642209537/52 > 0,
+and O/U is approximately 1.5014170219. This is a separate bounded-ingress witness for
+the threshold 3/2. Its capacity and ratio calculations are checked by Python
+integer and rational arithmetic; the construction is justified above. The
+unrestricted-batch theorem in the manuscript gives the constant r.
+
+Sources
+Aiello et al. (2008): https://doi.org/10.1145/1435375.1435378
+Antoniadis et al. (2024), introduction and footnote 1: https://arxiv.org/html/2012.03906v2#S1
