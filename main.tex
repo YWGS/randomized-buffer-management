@@ -1,0 +1,181 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,booktabs}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{pdfauthor={Changlin Li},pdftitle={A 1.5422 Lower Bound for Randomized Buffer Management in Shared-Memory Switches}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newcommand{\pos}[1]{\bigl(#1\bigr)_{+}}
+\newcommand{\OPT}{\mathrm{OPT}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\ALG}{\mathrm{ALG}}
+\setlength{\emergencystretch}{1em}
+\begin{document}
+\begin{center}
+{\LARGE\bfseries A 1.5422 Lower Bound for Randomized\\[3pt] Buffer Management in Shared-Memory Switches}\par
+\vspace{0.6em}
+{\large Changlin Li}\par
+{\small Singapore University of Technology and Design (SUTD)}\par
+{\small 24 November 2026}
+\end{center}
+
+\begin{abstract}
+A shared-memory switch transmits one unit packet from each nonempty output queue per slot. We prove that every causal admission and eviction policy has uniform competitive ratio at least $1.5422114197\ldots$, even with private randomization against an oblivious adversary. The bound is the unique root $r>1$ of $r\log r-(r-1)\log(r-1)=1$. All queues start receiving together. A hidden permutation assigns their last arrival times. A capacity inequality accounts for the stock in queues about to stop receiving and in those already draining. Geometrically spaced groups approach the bound, and one explicit finite switch forces a ratio above $3/2$.
+\end{abstract}
+
+\section{Model and result}
+An initially empty switch has $K$ named outputs and $B$ shared packet positions. Each slot brings an arbitrary finite batch of unit packets with specified destinations. The online policy sees the whole batch and may retain any $B$ or fewer old and new packets. Each nonempty output then transmits one packet. Throughput includes the final drain.
+
+Let $\OPT_{B,K}(I)$ be the maximum clairvoyant throughput on finite input $I$. A policy may use $B,K$ and private coins. Its decisions are measurable in its seed for each arrival history. A uniform factor $R$ permits a policy- and switch-dependent constant $a_{B,K}$ such that every fixed input satisfies
+\begin{equation}
+  \OPT_{B,K}(I)\le R\,\E_{\rm coins}[\ALG_{B,K}(I)]+a_{B,K}.\label{eq:ratio}
+\end{equation}
+\begin{theorem}\label{thm:main}
+Every uniform factor in \eqref{eq:ratio} is at least the unique $r>1$ satisfying
+\[
+       r\log r-(r-1)\log(r-1)=1.
+\]
+In particular, no uniform $3/2$ guarantee is possible against inputs fixed before the policy's coins are drawn.
+\end{theorem}
+
+Aiello, Kesselman and Mansour (2008) proved a $4/3$ deterministic lower bound for a square switch admitting at most one arrival per input per slot \cite{aiello}. We allow arbitrary finite batches, as in Antoniadis et al.\ (2024) \cite{antoniadis}. Bochkov et al.\ (2019) proved a $\sqrt{2}$ lower bound for deterministic fractional policies and the existence of an integral offline optimum \cite[Thms.~2 and~4]{bochkov}. Section~\ref{sec:stock} transfers this lower bound to randomized integer policies by constructing, for each such policy, a deterministic fractional policy that matches or exceeds its expected throughput on every fixed input. Theorem~\ref{thm:main} raises the lower bound for randomized integer policies to $1.5422114197\ldots>3/2$.
+
+Davydow and Nikolenko \cite{davydow} used saturated arrivals and prescribed expiration profiles to prove a $1.46929591\ldots$ lower bound for Longest Queue Drop (LQD), with an adaptive adversary for randomized tie rules. They report an upper bound of $1.683652$, improving $1.6918$ \cite{antoniadis}. Matsakis withdrew a claimed $3/2$ upper bound for LQD with arbitrarily many outputs \cite{matsakis}. A separate $3/2$ upper bound holds for three outputs \cite{three}. For each $1\le\rho<r$, Section~\ref{sec:limit} rules out $\rho$ at fixed $K(\rho)$ for every sufficiently large integer $B$. A separate rate-limited instance also exceeds $3/2$.
+
+\newpage
+\section{Inventory at the last arrival}\label{sec:stock}
+Fix integers $0=t_0<t_1<\cdots<t_n$ and positive group sizes $d_0,\ldots,d_n$ summing to $K$. Draw a uniform permutation of all output labels. Its consecutive blocks of sizes $d_i$ define groups $D_i$. Each label in $D_i$ receives $B$ packets in \emph{every} slot from $0$ through $t_i$, inclusive. After slot $t_n$ append $B$ empty slots. Identical batches at all receiving labels, with labels listed in increasing order, reveal an expiration only when that group's next batch fails to appear. The event times and group sizes can be given to the policy at the beginning.
+
+Immediately before the service in slot $t_i$, there are $U_i=\sum_{j=i}^n d_j$ labels still receiving. Let $Z_i$ count all transmissions by group $D_i$ from slot $t_i$ through the final drain, and set $h_i=\E Z_i/d_i$. Expectations in this section include both the permutation and private coins. Earlier services by each label in $D_i$ number at most $t_i$. Consequently,
+\begin{equation}
+ \E[\ALG]\le S+\sum_{i=0}^n d_i h_i,
+ \qquad S=\sum_{i=0}^n d_i t_i.\label{eq:split}
+\end{equation}
+
+\begin{lemma}\label{lem:cap}
+For each $0\le i\le n$,
+\begin{equation}
+ U_i h_i+\sum_{j<i} d_j\pos{h_j-(t_i-t_j)}\le B.\label{eq:cap}
+\end{equation}
+\end{lemma}
+\begin{proof}
+Fix the private seed and condition on all observed arrivals through slot $t_i$. The stock vector just before service is now fixed. Conditional on this information, $D_i$ is a uniform $d_i$-subset of the $U_i$ current receivers. If their total stock is $P_i$, the conditional expected stock in $D_i$ is $d_i P_i/U_i$. Every packet counted in $Z_i$ must come from this stock. Taking expectations gives $\E P_i\ge U_i h_i$.
+
+For $j<i$, at most $d_j(t_i-t_j)$ of the $Z_j$ transmissions can occur before slot $t_i$. All packets supplying the rest must still be present just before that slot's service. If $H_{ji}$ denotes the stock in this earlier group, then pathwise
+\[
+ H_{ji}\ge \pos{Z_j-d_j(t_i-t_j)}.
+\]
+Discarded packets cause no difficulty since $Z_j$ counts only packets actually transmitted. Convexity of the positive part gives $\E H_{ji}\ge d_j\pos{h_j-(t_i-t_j)}$. The queues counted by $P_i,H_{0i},\ldots,H_{i-1,i}$ are disjoint. Their total stock is at most $B$.
+\end{proof}
+
+With $B=3$, let two outputs expire at slots 0 and 2. The first expiring output has expected stock at most $3/2$. The survivor can send twice before slot 2 and at most three packets thereafter. An initial split of two packets and one attains $13/2$ in expectation. Offline assigns two to the expiring output and one to the survivor, obtaining seven.
+
+\paragraph{The fractional comparison used in Section~1.}
+Fix an input prefix and one port. Let $p$ be the randomized policy's previous expected post-service stock, $m$ its current expected retained stock, $y$ its expected service, and $a$ the arrivals. A fractional policy with previous post-service stock $F$ retains $f=\min(m,F+a)$ and sends $z=\min(1,f)$. Its total stock is at most $\sum m\le B$. Let $L$ be its cumulative service lead at this port before the slot. Initially $p=F=L=0$. If $0\le p-F\le L$, then $m\le p+a$ gives $0\le m-f\le L$. Since $y\le\min(1,m)$ and $f-z=(f-1)_+\le m-y$, the new deficit satisfies
+\[
+  0\le (m-y)-(f-z)\le L+z-y .
+\]
+Induction gives a nonnegative service lead on every fixed input. The fractional policy uses only the arrival prefix and the law of the integer policy.
+
+\newpage
+\section{A finite geometric family}
+Fix an integer $v\ge3$ and a rational $\lambda=b/c>0$ with positive integers $b,c$. Put $w=v-1$. For $n$ main events and one terminal event take
+\begin{align}
+ K&=v^n,\quad B=c(vw)^{n-1},\quad d_n=w^n,\nonumber\\
+ d_i&=v^{n-1-i}w^i,\quad L_i=t_{i+1}-t_i=bv^i w^{n-1-i}\quad(0\le i<n).\label{eq:inst}
+\end{align}
+At a main event $U_i=vd_i$ and $wd_i$ labels continue. Since $d_i L_i=\lambda B$, the pre-expiration term is $S=\sum_{i<n}wd_i L_i=nw\lambda B$. In units of $B$, the maximum service of a group of age $k$ events is
+\[
+ T_k=\frac{d_{i-k}}B(t_i-t_{i-k})=\lambda w\big[(v/w)^k-1\big],\qquad T_0=0 .
+\]
+With $X_i=d_i h_i/B$, inequality \eqref{eq:cap} gives $vX_i+\sum_{k=1}^{i}\pos{X_{i-k}-T_k}\le1$, in particular $X_i\le1/v$.
+
+For $\theta=0,1$, define $x_\theta$ as the unique positive solution of
+\begin{equation}
+ (1+\theta w)x_\theta+\sum_{k\ge1}\pos{x_\theta-T_k}=1.\label{eq:stationary}
+\end{equation}
+The left side is continuous and strictly increasing from zero to infinity. Each sum has only finitely many positive terms. Write $m=\#\{k\ge1:T_k<x_1\}$ and $E_m=m(m+1)/(2v(v+m))$.
+
+\begin{proposition}\label{prop:fin}
+If $B>K$ and $n\ge m$, then
+\begin{equation}
+ R\ \ge\ \frac{S+n\lfloor(B-K)x_0\rfloor}{S+B(nx_1+E_m+1)}.\label{eq:fin}
+\end{equation}
+\end{proposition}
+\begin{proof}
+Keep lags $k\le m$ in each online inequality and replace each positive part by its argument. Summing gives
+\[(v+m)\sum_{i<n}X_i\le n\!\left(1+\sum_{k=1}^m T_k\right)+\frac{m(m+1)}{2v} .\]
+Indeed, lag $k$ counts $n-k$ previous terms and omits $k$ terms at the right boundary, each at most $1/v$. Equation~\eqref{eq:stationary} gives $\sum_{i<n} X_i\le nx_1+E_m$. The terminal group contributes at most $B$ additional transmissions. This proves the denominator bound via \eqref{eq:split}.
+
+Offline assigns $q=\lfloor(B-K)x_0\rfloor$ packets, as evenly as possible, to each main group at its last arrival. Give every strict survivor one packet per slot and preserve every expiring stock until service. The terminal group receives zero at its last arrival. After $\tau$ services, a group of size $d$ retains exactly $(q-d\tau)_+$: writing $q=ad+e$ gives $e$ queues of size $a+1$ and $d-e$ of size $a$. At a main event the current and older stocks sum to at most $(B-K)\sum_{k\ge0}\pos{x_0-T_k}=B-K$, since their age deductions are $BT_k\ge(B-K)T_k$. Each intervening slot only reduces these stocks. The capacity argument also applies to the terminal event, which adds no expiring stock. The other $K$ positions cover the survivors. Service is exactly $S+nq$.
+
+Draw $N$ independent permutations on the same switch, appending the empty drain to every copy. The conditional online bound applies after every history. Average \eqref{eq:ratio} over these inputs, divide by $N$, then send $N\to\infty$ with $B,K$ fixed. This gives \eqref{eq:fin}. Equivalently, for each $N$ and each policy, some presampled trace has at most the distributional mean of its coin-averaged throughput.
+\end{proof}
+
+\newpage
+\section{From finite switches to the constant}\label{sec:limit}
+At fixed $v,\lambda$ we have $K/B=v/(cw^{n-1})\to0$. Divide \eqref{eq:fin} by $nB$ in numerator and denominator, then send $n\to\infty$. This gives
+\begin{equation}
+ R\ge \frac{w\lambda+x_0}{w\lambda+x_1}.\label{eq:fixedv}
+\end{equation}
+Both roots are independent of $n$. We next take $v\to\infty$ through integers. Put $\delta=1/v$ and $\lambda=C\delta^2$ for a fixed positive rational $C$. Then
+\[
+ \frac{T_k}{\delta}=C(1-\delta)\big[(1-\delta)^{-k}-1\big].
+\]
+For bounded $k\delta$, this converges uniformly to $C(e^{k\delta}-1)$, since $-\log(1-\delta)=\delta+O(\delta^2)$. For each fixed $y>0$ choose $L$ with $C(e^L-1)>y$. Monotonicity implies that $(\delta y-T_k)_+$ vanishes for $k\delta\ge L+1$ once $\delta$ is small. Evaluating \eqref{eq:stationary} at $x=\delta y$ now gives a Riemann sum with the limit
+\begin{align*}
+ G_\theta(y)
+ &=\theta y+\int_0^{\log(1+y/C)}\!\big[y-C(e^z-1)\big]\,dz\\
+ &=\theta y+(C+y)\log(1+y/C)-y .
+\end{align*}
+This limit is continuous, strictly increasing on $y>0$, and ranges from zero to infinity. Testing values just below and above its level-one point shows that $x_\theta/\delta$ converges to that point. As $w\lambda/\delta\to C$, inequality~\eqref{eq:fixedv} becomes $R\ge z_0/z_1$, where the unique solutions $z_0,z_1>C$ satisfy
+\begin{equation}
+ z_0\log(z_0/C)-z_0+C=1,\qquad z_1\log(z_1/C)=1.\label{eq:z}
+\end{equation}
+Strict monotonicity and continuity give continuous dependence of both roots on $C>0$ by bracketing. Thus the ratio bound extends from rational to all positive $C$.
+
+\paragraph{Choosing the spacing.}
+Let $g(r)=r\log r-(r-1)\log(r-1)$. Its derivative is $\log(r/(r-1))>0$. Also $g(1^+)=0$ and $g(2)=2\log2>1$. For the unique $r\in(1,2)$ with $g(r)=1$, set
+\[
+ s=-\log(r-1),\qquad z_1=1/s,\qquad C=(r-1)/s,\qquad z_0=r/s .
+\]
+The second equation in~\eqref{eq:z} follows from $z_1/C=e^s$. Multiplying the first equation's left side by $s$ gives $r(\log r+s)-1=s$, using $r\log r+(r-1)s=1$. This proves $R\ge r$, as claimed. Moreover $g(3/2)=\tfrac12\log(27/4)<1$ because $e^2>27/4$, so the theorem is strictly stronger than $3/2$. In a numerical search over 5,391 periodic profiles with varying expiration rates, including profiles with new arrivals to previously unused outputs, no computed stationary inventory ratio exceeded $r$.
+
+\paragraph{All sufficiently large capacities.}
+Fix $1\le\rho<r$. Choose a finite witness in \eqref{eq:fin} with offline payoff $O_0$ and online upper bound $U_0=S+B_0C$ such that $O_0>\rho U_0$, where $C=nx_1+E_m+1$. Keep its $K$ ports. For any $B=hB_0+s$, $0\le s<B_0$, multiply every event time and the offline group allocation by $h$, redistributing each new allocation evenly. The event stocks and residuals scale by $h$, and the singleton reserve still fits. The normalized service ages become $(hB_0/B)T_k\le T_k$, so the original online rows remain valid upper bounds. Thus $O\ge hO_0$ and $U\le hU_0+sC$. For every sufficiently large $h$ the gain $h(O_0-\rho U_0)-\rho sC$ is positive for every remainder. Repetition on that fixed switch removes its additive constant. The required $K$ may depend on $\rho$.
+
+\newpage
+\section{An explicit switch above three halves}
+Set $v=20$, $w=19$, $n=1600$ and $\lambda=1/400$ in \eqref{eq:inst}. Then $K=20^{1600}$, $B=400\cdot380^{1599}$ and $S/(nB)=19/400$. A rational calculation suffices.
+
+Start at $T_0=0$ and iterate $T_{k+1}=(20/19)T_k+1/400$. For a proposed lag count $m_\theta$, form $x=(1+\sum_{k=1}^{m_\theta}T_k)/(1+19\theta+m_\theta)$. The table gives rational enclosures; every endpoint shown is a terminating decimal. In each row $T_{m_\theta}<x<T_{m_\theta+1}$, so $x=x_\theta$ by~\eqref{eq:stationary}.
+\begin{center}
+\begin{tabular}{@{}crccc@{}}\toprule
+$\theta$ & $m_\theta$ & $T_{m_\theta}$ & $x$ & $T_{m_\theta+1}$\\\midrule
+0 & 19 & $(.07837,.07838)$ & $(.08325,.08326)$ & $(.08500,.08501)$\\
+1 & 11 & $(.03600,.03602)$ & $(.03863,.03864)$ & $(.04040,.04041)$\\\bottomrule
+\end{tabular}
+\end{center}
+Here $E_{11}=33/310$ and $K/B,1/B<10^{-5}$. Rounding down the numerator and rounding up the denominator in \eqref{eq:fin} gives
+\[
+ R>
+ \frac{19/400+(1-10^{-5})(.08325)-10^{-5}}
+      {19/400+.03864+(1+33/310)/1600}
+ =\frac{1\,621\,165\,677}{1\,076\,711\,000}>\frac32 .
+\]
+\paragraph{Verification.}
+The ancillary Lean~4 theorem \texttt{PolicyBridge.sharpFromPolicies} proves Theorem~\ref{thm:main} from the packet-level definition of competitiveness. It constructs the hidden inputs, derives the inventory rows for each fixed seed and history, and builds a capacity-feasible offline schedule for every assignment. The same seed governs all repetitions. For the separate large-capacity extension, \texttt{LargeBuffer.lean} checks the scaling inequalities. Section~\ref{sec:limit} supplies their physical interpretation. Lean also checks the one-slot invariant of the fractional comparison in Section~\ref{sec:stock}. A separate rational certificate exceeds $1.5014$ with at most 32 arrivals per active output per slot. The ancillary notes justify its offline schedule and its realization on a rate-limited square switch using dedicated input ports.
+
+\smallskip
+\noindent\textit{Disclosure.} OpenAI Codex was used to polish the manuscript and write the verification code.
+
+\begin{thebibliography}{9}\small\raggedright\setlength{\itemsep}{1.5pt}
+\bibitem{aiello} W. Aiello, A. Kesselman, and Y. Mansour. \href{https://doi.org/10.1145/1435375.1435378}{Competitive buffer management for shared-memory switches}. \emph{ACM Trans. Algorithms} 5(1), Article 3, 2008.
+\bibitem{bochkov} I. Bochkov, A. Davydow, N. Gaevoy, and S. I. Nikolenko. \href{https://arxiv.org/abs/1907.04399}{New competitiveness bounds for the shared memory switch}. arXiv:1907.04399, 2019.
+\bibitem{davydow} A. Davydow and S. Nikolenko. \href{https://arxiv.org/abs/2609.19157}{New bounds on the competitive ratio of Longest Queue Drop}. arXiv:2609.19157, 2026.
+\bibitem{antoniadis} A. Antoniadis, M. Englert, N. Matsakis, and P. Vesel\'y. \href{https://doi.org/10.1145/3676887}{Breaking the barrier of 2 for the competitiveness of Longest Queue Drop}. \emph{ACM Trans. Algorithms} 20(4), 2024.
+\bibitem{matsakis} N. Matsakis. \href{https://arxiv.org/abs/1207.1141}{The Longest Queue Drop policy for shared-memory switches is 1.5-competitive}. arXiv:1207.1141, 2012, withdrawn 2023.
+\bibitem{three} N. Matsakis. \href{https://ceur-ws.org/Vol-1548/043-Matsakis.pdf}{LQD is 1.5-competitive for 3-port shared-memory switches}. \emph{CEUR Workshop Proceedings} 1548, pp. 43--58, 2016.
+\end{thebibliography}
+\end{document}
